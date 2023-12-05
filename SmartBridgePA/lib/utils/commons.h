@@ -6,6 +6,9 @@
 
 extern WaterLevelState currWaterLevelState;
 extern BlinkState currBlinkState;
+extern SmartLightState currSmartLightState;
+extern bool currDetectionState;
+extern bool currDarkState;
 extern SemaphoreHandle_t xMutex;
 
 #endif
