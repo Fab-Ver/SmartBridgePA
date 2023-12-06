@@ -3,9 +3,11 @@
 #define TIME_OFF 5000
 
 unsigned long lastDetection = 0;
+unsigned long lastON = 0;
+
 bool currDetectionState = false;
 bool currDarkState = false;
-unsigned long lastON = 0;
+SmartLightState currTaskState = LIGHT_OFF;
 
 SmartLightTask::SmartLightTask(int ledPin, int lsPin, int msPin){
     this->led = new Led(ledPin);
@@ -28,43 +30,51 @@ void SmartLightTask::tick(){
 		unsigned long now = millis();
         if(now - lastDetection >= SMART_LIGHT_PERIOD){
             lastDetection = now;
+            /*Aggiornamento variabili locali*/
             bool detected = motionSensor->isDetected();
             bool dark = lightSensor->isDark();
             xSemaphoreTake(xMutex, portMAX_DELAY);
-		    currSmartLightState = currWaterLevelState == ALARM ? SYS_OFF : currSmartLightState == SYS_OFF ? LIGHT_ON : currSmartLightState;
-            currDetectionState = detected;
-            currDarkState = dark;
+		    currTaskState = currWaterLevelState == ALARM ? SYS_OFF : currTaskState == SYS_OFF ? LIGHT_ON : currTaskState;
 		    xSemaphoreGive(xMutex);
-            switch (currSmartLightState){
+            /*-----------------------------*/
+            switch (currTaskState){
                 case LIGHT_OFF: {
                     if(detected && dark){
-                        currSmartLightState = LIGHT_ON;
+                        currTaskState = LIGHT_ON;
                     }
                     led->switchOff();
                 }break;
                 case LIGHT_ON:{
                     lastON = millis();
                     if(!dark){
-                        currSmartLightState = LIGHT_OFF;
+                        currTaskState = LIGHT_OFF;
                     } else if (dark && !detected){
-                        currSmartLightState = WAITING;
+                        currTaskState = WAITING;
                     }
                     led->switchOn();
                 }break;
                 case WAITING:{
                     if(dark && detected){
-                        currSmartLightState = LIGHT_ON;
+                        currTaskState = LIGHT_ON;
                     } else {
                         if((millis() - lastON >= TIME_OFF) || !dark){
-                            currSmartLightState = LIGHT_OFF;
+                            currTaskState = LIGHT_OFF;
                         }
                     }
                 }break;
                 case SYS_OFF:{
                     led->switchOff();
-                    currSmartLightState = LIGHT_OFF;
+                    //currTaskState = LIGHT_OFF;
                 }break;
             }
+            /*Aggiornamento variabili condivise*/
+            xSemaphoreTake(xMutex, portMAX_DELAY);
+		    currSmartLightState = currTaskState;
+            currDetectionState = detected;
+            currDarkState = dark;
+		    xSemaphoreGive(xMutex);
+            /*-----------------------------*/
+
         }
 		vTaskDelay(500);
   	}
