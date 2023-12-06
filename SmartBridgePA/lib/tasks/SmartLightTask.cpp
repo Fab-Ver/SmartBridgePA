@@ -30,7 +30,7 @@ void SmartLightTask::tick(){
 		unsigned long now = millis();
         if(now - lastDetection >= SMART_LIGHT_PERIOD){
             lastDetection = now;
-            /*Aggiornamento variabili locali*/
+            /*Local variables update*/
             bool detected = motionSensor->isDetected();
             bool dark = lightSensor->isDark();
             xSemaphoreTake(xMutex, portMAX_DELAY);
@@ -67,7 +67,7 @@ void SmartLightTask::tick(){
                     //currTaskState = LIGHT_OFF;
                 }break;
             }
-            /*Aggiornamento variabili condivise*/
+            /*Shared Variables update*/
             xSemaphoreTake(xMutex, portMAX_DELAY);
 		    currSmartLightState = currTaskState;
             currDetectionState = detected;

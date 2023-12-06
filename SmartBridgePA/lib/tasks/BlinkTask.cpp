@@ -20,7 +20,7 @@ void BlinkTask::tickWrapper(void* _this){
 void BlinkTask::tick(){
     for(;;){
 		unsigned long now = millis();
-        /*Aggiornamento variabili locali*/
+        /*Local variables update*/
         xSemaphoreTake(xMutex, portMAX_DELAY);
 		currTaskState = currWaterLevelState != PRE_ALARM ? BLINK_OFF : currTaskState == BLINK_OFF ? ON : currTaskState;
 		xSemaphoreGive(xMutex);
@@ -38,7 +38,7 @@ void BlinkTask::tick(){
             lastBlink = now;
             led->switchOff();
         }
-        /*Aggiornamento variabili condivise*/
+        /*Shared variables update*/
         xSemaphoreTake(xMutex, portMAX_DELAY);
 		currBlinkState = currTaskState;
 		xSemaphoreGive(xMutex);
