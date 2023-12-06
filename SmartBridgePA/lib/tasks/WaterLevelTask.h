@@ -4,8 +4,11 @@
 #include "Task.h"
 #include "Led.h"
 #include "WaterLevelSensor.h"
+#include "ValveKnob.h"
 #include "Valve.h"
 #include <Arduino.h>
+#include "config.h"
+#include "commons.h"
 
 class WaterLevelTask : public Task {
     private:
@@ -13,12 +16,13 @@ class WaterLevelTask : public Task {
         Light* redLed;
         Sonar* waterLevelSensor;
         ServoMotor* valve;
-        //Potentiometer* pot;
+        Potentiometer* knob;
         TaskHandle_t WaterLevelHandle;
+        WaterLevelState currWaterLevelState;
         void tick();
         static void tickWrapper(void* _this);
     public:
-        WaterLevelTask(int trigPin, int echoPin, int valvePin, int greenPin, int redPin /*int potPin,*/);
+        WaterLevelTask(int trigPin, int echoPin, int valvePin, int greenPin, int redPin, int knobPin);
         void init(); 
 };
 
