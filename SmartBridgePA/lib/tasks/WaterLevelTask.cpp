@@ -11,6 +11,8 @@ WaterLevelState currTaskState = NORMAL;
 WaterLevelState prevTaskState = NORMAL;
 ManualState currManualState = MANUAL_OFF;
 
+void switchState(float currWL);
+
 WaterLevelTask::WaterLevelTask(int trigPin, int echoPin, int valvePin, int greenPin, int redPin, int knobPin){
     this->greenLed = new Led(greenPin);
     this->redLed = new Led(redPin);
