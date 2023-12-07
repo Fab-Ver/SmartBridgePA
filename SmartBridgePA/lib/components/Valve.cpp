@@ -5,20 +5,19 @@ Valve::Valve(int pin){
 }
 
 void Valve::setPosition(int angle){
-    if(angle > 180){
-        angle = 180;
-    } else if(angle < 0){
-        angle = 0;
-    }
-    float coeff = ((float)(MAX_PULSE_WIDTH - MIN_PULSE_WIDTH))/180.0;
-    motor.write(MIN_PULSE_WIDTH + angle * coeff);
+    motor.write(angle);
 }
 
 void Valve::on(){
-    motor.attach(pin);
+    if(!motor.attached()){
+        motor.setPeriodHertz(50);
+        motor.attach(pin);
+    }
 }
 
 void Valve::off(){
-    motor.detach();
+    if(motor.attached()){
+        motor.detach();
+    }
 }
 
