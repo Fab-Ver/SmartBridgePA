@@ -6,5 +6,5 @@ ValveKnob::ValveKnob(int pin){
 
 int ValveKnob::getAngle(){
     int value = analogRead(pin);
-    return map(value,0,1024,0,180);
+    return map(value, 0, 4095, 0, 180);
 }
