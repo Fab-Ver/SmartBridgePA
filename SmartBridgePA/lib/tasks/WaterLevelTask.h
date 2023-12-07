@@ -6,8 +6,6 @@
 #include "WaterLevelSensor.h"
 #include "ValveKnob.h"
 #include "Valve.h"
-#include <Arduino.h>
-#include "config.h"
 #include "commons.h"
 
 class WaterLevelTask : public Task {
@@ -18,7 +16,6 @@ class WaterLevelTask : public Task {
         ServoMotor* valve;
         Potentiometer* knob;
         TaskHandle_t WaterLevelHandle;
-        WaterLevelState currWaterLevelState;
         void tick();
         static void tickWrapper(void* _this);
     public:

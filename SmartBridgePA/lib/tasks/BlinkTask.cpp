@@ -1,11 +1,12 @@
 #include "BlinkTask.h"
 
 unsigned long lastBlink = 0;
-BlinkState currTaskState = BLINK_OFF;
+BlinkState currBS = BLINK_OFF;
+
+BlinkState currBlinkState = BLINK_OFF;
 
 BlinkTask::BlinkTask(int ledPin){
     this->led = new Led(ledPin);
-    this->currBlinkState = BLINK_OFF;
 }
 
 void BlinkTask::init(){
@@ -22,25 +23,25 @@ void BlinkTask::tick(){
 		unsigned long now = millis();
         /*Local variables update*/
         xSemaphoreTake(xMutex, portMAX_DELAY);
-		currTaskState = currWaterLevelState != PRE_ALARM ? BLINK_OFF : currTaskState == BLINK_OFF ? ON : currTaskState;
+		currBS = currWaterLevelState != PRE_ALARM ? BLINK_OFF : currBS == BLINK_OFF ? ON : currBS;
 		xSemaphoreGive(xMutex);
         /*------------------------------*/
-		if(now - lastBlink >= BLINK_PERIOD && currTaskState != BLINK_OFF){
+		if(now - lastBlink >= BLINK_PERIOD && currBS != BLINK_OFF){
 			lastBlink = now;
-			if(currTaskState == ON){
+			if(currBS == ON){
                 led->switchOff();
-                currTaskState = OFF;
-            } else if (currTaskState == OFF){
+                currBS = OFF;
+            } else if (currBS == OFF){
                 led->switchOn();
-                currTaskState = ON;
+                currBS = ON;
             }
-		} else if (now - lastBlink >= BLINK_PERIOD && currTaskState == BLINK_OFF){
+		} else if (now - lastBlink >= BLINK_PERIOD && currBS == BLINK_OFF){
             lastBlink = now;
             led->switchOff();
         }
         /*Shared variables update*/
         xSemaphoreTake(xMutex, portMAX_DELAY);
-		currBlinkState = currTaskState;
+		currBlinkState = currBS;
 		xSemaphoreGive(xMutex);
         /*--------------------------------*/
 		vTaskDelay(500);

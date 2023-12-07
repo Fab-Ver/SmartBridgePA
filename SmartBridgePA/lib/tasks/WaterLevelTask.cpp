@@ -1,6 +1,6 @@
 #include "WaterLevelTask.h"
 
-unsigned long lastDetection = 0;
+unsigned long last = 0;
 
 float currWaterLevel = 0.0;
 int currValveAngle = 0;
@@ -11,6 +11,8 @@ WaterLevelState currTaskState = NORMAL;
 WaterLevelState prevTaskState = NORMAL;
 ManualState currManualState = MANUAL_OFF;
 
+WaterLevelState currWaterLevelState = NORMAL;
+
 void switchState(float currWL);
 
 WaterLevelTask::WaterLevelTask(int trigPin, int echoPin, int valvePin, int greenPin, int redPin, int knobPin){
@@ -19,7 +21,6 @@ WaterLevelTask::WaterLevelTask(int trigPin, int echoPin, int valvePin, int green
     this->waterLevelSensor = new WaterLevelSensor(trigPin, echoPin);
     this->valve = new Valve(valvePin);
     this->knob = new ValveKnob(knobPin);
-    this->currWaterLevelState = NORMAL;
 }
 
 void WaterLevelTask::init(){
@@ -34,8 +35,8 @@ void WaterLevelTask::tickWrapper(void* _this){
 void WaterLevelTask::tick(){
     for(;;){
 		unsigned long now = millis();
-        if(now - lastDetection >= WATER_LEVEL_PERIOD){
-            lastDetection = now;
+        if(now - last >= WATER_LEVEL_PERIOD){
+            last = now;
             ManualState manual;
             int manualAngle;
             xSemaphoreTake(xMutex, portMAX_DELAY);
