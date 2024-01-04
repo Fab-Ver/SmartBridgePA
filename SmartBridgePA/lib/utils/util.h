@@ -4,11 +4,6 @@
 #include "config.h"
 #include "Arduino.h"
 
-String convertBlinkState(BlinkState value){
-    String names[3] = {"ON", "OFF", "BLINK_OFF"};
-    return names[value];
-}
-
 String convertSmartLightState(SmartLightState value){
     String names[4] = {"LIGHT_ON", "LIGHT_OFF", "WAITING", "SYS_OFF"};
     return names[value];
