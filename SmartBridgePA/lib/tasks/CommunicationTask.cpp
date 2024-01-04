@@ -12,8 +12,14 @@ const char* mqtt_server = "broker.mqtt-dashboard.com";
 /**
  * MQTT topic
 */
-const char* wls_topic = "water-level-state";
-const char* wl_topic = "water-level";
+const char* wls_topic = "water-level-task/water-level-state";
+const char* wl_topic = "water-level-task/water-level";
+const char* angle_topic = "water-level-task/valve-angle";
+const char* green_led_topic = "water-level-task/green-led";
+const char* red_led_topic = "water-level-task/red-led";
+const char* sl_topic = "smart-light-task/smart-light-state";
+const char* dark_topic = "smart-light-task/dark";
+const char* detected_topic = "smart-light-task/detected";
 
 WaterLevelState currWLS = NORMAL;
 WaterLevelState prevWLS = NORMAL;
@@ -87,31 +93,9 @@ void CommunicationTask::tick(){
             currDark = currDarkState;
             xSemaphoreGive(xMutex);
 
-          	/*
-       		if(currLightState != prevLightState){
-          		DynamicJsonDocument doc(1024);
-          		doc["light"] = currLightState == ON ? true : false;
-          		char* msg_json = (char*) malloc(1024);
-          		serializeJson(doc,msg_json,1024);
-          		Serial.println(msg_json);
-          		client.publish(light_topic,msg_json);
-          		prevLightState = currLightState;
-          		free(msg_json);
-        	}
-        	if(currRollerBlindState != prevRollerBlindState && currRollerBlindState != UNDETERMINED){
-          		DynamicJsonDocument doc(1024);
-          		doc["roller_blind"] = currRollerBlindState == UP ? 0 : 100;
-          		char* msg_json = (char*) malloc(1024);
-          		serializeJson(doc,msg_json,1024);
-          		Serial.println(msg_json);
-          		client.publish(roller_blind_topic,msg_json);
-          		prevRollerBlindState = currRollerBlindState;
-          		free(msg_json);
-        	}*/
-
           	if(currWLS != prevWLS){
               	DynamicJsonDocument doc(1024);
-          		doc["wls"] = convertWaterLevelState(currWLS);
+          		doc["waterLevelState"] = convertWaterLevelState(currWLS);
           		char* msg_json = (char*) malloc(1024);
           		serializeJson(doc,msg_json,1024);
           		//Serial.println(msg_json);
@@ -119,7 +103,6 @@ void CommunicationTask::tick(){
           		prevWLS = currWLS;
           		free(msg_json);
           	}
-            //currMS = currManualState; capire cosa fare
 
 			if(currWL != prevWL){
               	DynamicJsonDocument doc(1024);
@@ -132,16 +115,75 @@ void CommunicationTask::tick(){
           		free(msg_json);
           	}
 
-            currAngle = currValveAngle;
-            currGreenON = currGreenLedON;
-            currRedON  = currRedLedON;
+			if(currAngle != prevAngle){
+              	DynamicJsonDocument doc(1024);
+          		doc["valveAngle"] = currAngle;
+          		char* msg_json = (char*) malloc(1024);
+          		serializeJson(doc,msg_json,1024);
+          		//Serial.println(msg_json);
+          		client.publish(angle_topic,msg_json);
+          		prevAngle = currAngle;
+          		free(msg_json);
+          	}
 
-            currB = currBlinkState;
-            currSL = currSmartLightState;
-            currDetection = currDetectionState;
-            currDark = currDarkState;
+			if(currGreenON != prevGreenON){
+              	DynamicJsonDocument doc(1024);
+          		doc["greenLedON"] = currGreenON;
+          		char* msg_json = (char*) malloc(1024);
+          		serializeJson(doc,msg_json,1024);
+          		//Serial.println(msg_json);
+          		client.publish(green_led_topic,msg_json);
+          		prevGreenON = currGreenON;
+          		free(msg_json);
+          	}
 
-            Serial.println("WLS: " + convertWaterLevelState(currWLS));
+			if(currRedON != prevRedON || currB != prevB){
+				DynamicJsonDocument doc(1024);
+          		doc["redLedON"] = currRedON;
+				doc["blinking"] = currB == BLINK_OFF ? false : true;
+          		char* msg_json = (char*) malloc(1024);
+          		serializeJson(doc,msg_json,1024);
+          		//Serial.println(msg_json);
+          		client.publish(red_led_topic,msg_json);
+          		prevRedON = currRedON;
+				prevB = currB;
+          		free(msg_json);
+			}
+
+			if(currSL != prevSL){
+              	DynamicJsonDocument doc(1024);
+          		doc["smartLightState"] = convertSmartLightState(currSL);
+          		char* msg_json = (char*) malloc(1024);
+          		serializeJson(doc,msg_json,1024);
+          		//Serial.println(msg_json);
+          		client.publish(sl_topic,msg_json);
+          		prevSL = currSL;
+          		free(msg_json);
+          	}
+
+			if(currDetection != prevDetection){
+              	DynamicJsonDocument doc(1024);
+          		doc["detected"] = currDetection;
+          		char* msg_json = (char*) malloc(1024);
+          		serializeJson(doc,msg_json,1024);
+          		//Serial.println(msg_json);
+          		client.publish(detected_topic,msg_json);
+          		prevDetection = currDetection;
+          		free(msg_json);
+          	}
+
+            if(currDark != prevDark){
+              	DynamicJsonDocument doc(1024);
+          		doc["dark"] = currDark;
+          		char* msg_json = (char*) malloc(1024);
+          		serializeJson(doc,msg_json,1024);
+          		//Serial.println(msg_json);
+          		client.publish(dark_topic,msg_json);
+          		prevDark = currDark;
+          		free(msg_json);
+          	}
+
+            /*Serial.println("WLS: " + convertWaterLevelState(currWLS));
             Serial.println("MS: " + convertManualState(currMS));
             Serial.println("WL: " + String(currWL));
             Serial.println("Angle :" + String(currAngle));
@@ -151,14 +193,45 @@ void CommunicationTask::tick(){
             Serial.println("Blink:  " + convertBlinkState(currB));
             Serial.println("SL:  " + convertSmartLightState(currSL));
             Serial.println("Detection:  " + currDetection ? "true" : "false");
-            Serial.println("Dark:  " + currDark ? "true" : "false");
+            Serial.println("Dark:  " + currDark ? "true" : "false");*/
         }
         vTaskDelay(COMMUNICATION_PERIOD);
     }
 }
 
 void callback(char* topic, byte* payload, unsigned int length) {
-  Serial.println(String("Message arrived on [") + topic + "] len: " + length);
+	Serial.println(String("Message arrived on [") + topic + "] len: " + length + "   " + String((char *)payload));
+  	/*StaticJsonDocument<200> doc;
+  	DeserializationError error = deserializeJson(doc, );
+		if(error){
+			Serial.print(F("deserializeJson() failed: "));
+    		Serial.println(error.c_str());
+		}
+	/*JsonObject json = doc.as<JsonObject>();
+	if(json.containsKey("light")){
+		bool light = doc["light"];
+		LightState currLightState = light ? ON : OFF;
+		if(currLightState != prevLightState){
+			rollerBlind->off();
+			if(currLightState == ON){
+				led->switchOn();
+			} else {
+				led->switchOff();
+			}
+			prevLightState = currLightState;
+			return true;
+		}
+	}
+	if(json.containsKey("roller_blind")){
+		int currRollerBlindState = doc["roller_blind"];
+		if(currRollerBlindState != prevRollerBlindState){
+			int angle = map(currRollerBlindState, 0, 100, 0, 180);
+			rollerBlind->on();
+			rollerBlind->setPosition(angle);
+			prevRollerBlindState = currRollerBlindState;
+			return true;
+		}
+	}*/
 }
 
 void reconnect(){
@@ -173,6 +246,10 @@ void reconnect(){
       Serial.println("connected");
       client.subscribe(wls_topic);
       client.subscribe(wl_topic);
+	  client.subscribe(angle_topic);
+	  client.subscribe(green_led_topic);
+	  client.subscribe(red_led_topic);
+	  client.subscribe(sl_topic);
     } else {
       Serial.print("failed rc=");
       Serial.print(client.state());
