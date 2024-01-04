@@ -12,9 +12,8 @@ const char* mqtt_server = "broker.mqtt-dashboard.com";
 /**
  * MQTT topic
 */
-//const char* light_topic = "light-state";
-//const char* roller_blind_topic = "roller-blind-state";
-/*Aggiungere i topic giusti */
+const char* wls_topic = "water-level-state";
+const char* wl_topic = "water-level";
 
 WaterLevelState currWLS = NORMAL;
 WaterLevelState prevWLS = NORMAL;
@@ -50,9 +49,9 @@ bool prevDark = false;
 unsigned long lastCommunication = 0;
 
 CommunicationTask::CommunicationTask(){
-    //randomSeed(micros());
-    //client.setServer(mqtt_server, 1883);
-    //client.setCallback(callback);
+    randomSeed(micros());
+    client.setServer(mqtt_server, 1883);
+    client.setCallback(callback);
 }
 
 void CommunicationTask::init(){
@@ -66,13 +65,13 @@ void CommunicationTask::tickWrapper(void* _this){
 
 void CommunicationTask::tick(){
 	for(;;){ 
-        unsigned long now = millis();
+    	unsigned long now = millis();
         if(now - lastCommunication >= COMMUNICATION_PERIOD){
         	lastCommunication = now;
-          	/*if(!client.connected()){
+          	if(!client.connected()){
             	reconnect();
           	}
-          	client.loop();*/
+          	client.loop();
             
             xSemaphoreTake(xMutex, portMAX_DELAY);
             currWLS = currWaterLevelState;
@@ -88,27 +87,7 @@ void CommunicationTask::tick(){
             currDark = currDarkState;
             xSemaphoreGive(xMutex);
 
-          	/*bool detectionState;
-          	bool darkState;
-          	int hour;
-          	xSemaphoreTake(xMutex, portMAX_DELAY);
-          	detectionState = currentDetectionState;
-          	darkState = currentDarkState;
-          	hour = currentHour;
-          	xSemaphoreGive(xMutex);
-        
-          	currLightState = OFF;
-          	currRollerBlindState = UNDETERMINED;
-        	if(hour != UNDEFINED_HOUR){
-            	if(hour >= 8 && hour < 19 && detectionState){
-                	currRollerBlindState = UP;
-            	} else if((hour >= 19 || hour < 8) and !detectionState){
-                	currRollerBlindState = DOWN;
-            	}
-        	}
-        	if(detectionState && darkState){
-            	currLightState = ON;
-        	}
+          	/*
        		if(currLightState != prevLightState){
           		DynamicJsonDocument doc(1024);
           		doc["light"] = currLightState == ON ? true : false;
@@ -129,6 +108,39 @@ void CommunicationTask::tick(){
           		prevRollerBlindState = currRollerBlindState;
           		free(msg_json);
         	}*/
+
+          	if(currWLS != prevWLS){
+              	DynamicJsonDocument doc(1024);
+          		doc["wls"] = convertWaterLevelState(currWLS);
+          		char* msg_json = (char*) malloc(1024);
+          		serializeJson(doc,msg_json,1024);
+          		//Serial.println(msg_json);
+          		client.publish(wls_topic,msg_json);
+          		prevWLS = currWLS;
+          		free(msg_json);
+          	}
+            //currMS = currManualState; capire cosa fare
+
+			if(currWL != prevWL){
+              	DynamicJsonDocument doc(1024);
+          		doc["waterLevel"] = currWL;
+          		char* msg_json = (char*) malloc(1024);
+          		serializeJson(doc,msg_json,1024);
+          		//Serial.println(msg_json);
+          		client.publish(wl_topic,msg_json);
+          		prevWL = currWL;
+          		free(msg_json);
+          	}
+
+            currAngle = currValveAngle;
+            currGreenON = currGreenLedON;
+            currRedON  = currRedLedON;
+
+            currB = currBlinkState;
+            currSL = currSmartLightState;
+            currDetection = currDetectionState;
+            currDark = currDarkState;
+
             Serial.println("WLS: " + convertWaterLevelState(currWLS));
             Serial.println("MS: " + convertManualState(currMS));
             Serial.println("WL: " + String(currWL));
@@ -159,8 +171,8 @@ void reconnect(){
     /*Attempt to connect*/
     if(client.connect(clientID.c_str())){
       Serial.println("connected");
-      //client.subscribe(light_topic);
-      //client.subscribe(roller_blind_topic);
+      client.subscribe(wls_topic);
+      client.subscribe(wl_topic);
     } else {
       Serial.print("failed rc=");
       Serial.print(client.state());
