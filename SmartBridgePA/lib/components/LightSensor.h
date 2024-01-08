@@ -2,7 +2,7 @@
 #define __LIGHT_SENSOR__
 
 #include "PhotoResistor.h"
-#define THRESHOLD 1000
+#define THRESHOLD 100
 
 class LightSensor : public PhotoResistor{
     private:
