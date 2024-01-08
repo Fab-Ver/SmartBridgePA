@@ -15,7 +15,6 @@
 #define VALVE_PIN 10
 #define GREEN_PIN 5
 #define RED_PIN 18 
-#define KNOB_PIN 15
 
 #define LED_PIN 6 
 #define LS_PIN 3

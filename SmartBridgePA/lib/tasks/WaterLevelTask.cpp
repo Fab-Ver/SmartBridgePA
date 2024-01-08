@@ -15,12 +15,11 @@ WaterLevelState currWaterLevelState = NORMAL;
 
 void switchState(float currWL);
 
-WaterLevelTask::WaterLevelTask(int trigPin, int echoPin, int valvePin, int greenPin, int redPin, int knobPin){
+WaterLevelTask::WaterLevelTask(int trigPin, int echoPin, int valvePin, int greenPin, int redPin){
     this->greenLed = new Led(greenPin);
     this->redLed = new Led(redPin);
     this->waterLevelSensor = new WaterLevelSensor(trigPin, echoPin);
     this->valve = new Valve(valvePin);
-    this->knob = new ValveKnob(knobPin);
 }
 
 void WaterLevelTask::init(){
@@ -51,7 +50,7 @@ void WaterLevelTask::tick(){
             if(manual == MANUAL_OFF){
                 switchState(currWL);
             } else {
-                manualAngle = knob->getAngle();
+                //manualAngle = knob->getAngle();
             }
 
             switch(currTaskState){
