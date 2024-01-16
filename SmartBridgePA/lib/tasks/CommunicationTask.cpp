@@ -7,19 +7,20 @@ PubSubClient client(espClient);
 /**
  * MQTT server address 
 */
-const char* mqtt_server = "broker.mqtt-dashboard.com";
-
+const char* mqtt_server = "test.mosquitto.org";
+const char* clientId = "smart-bridge";
 /**
  * MQTT topic
 */
-const char* wls_topic = "water-level-task/water-level-state";
-const char* wl_topic = "water-level-task/water-level";
-const char* angle_topic = "water-level-task/valve-angle";
-const char* green_led_topic = "water-level-task/green-led";
-const char* red_led_topic = "water-level-task/red-led";
-const char* sl_topic = "smart-light-task/smart-light-state";
-const char* dark_topic = "smart-light-task/dark";
-const char* detected_topic = "smart-light-task/detected";
+const char* wls_topic = "subsystems/org.eclipse.ditto:water-level-subsystem/status";
+const char* wl_topic = "subsystems/org.eclipse.ditto:water-level-subsystem/distance";
+const char* angle_topic = "subsystems/org.eclipse.ditto:water-level-subsystem/angle";
+const char* green_led_topic = "subsystems/org.eclipse.ditto:water-level-subsystem/green";
+const char* red_led_topic = "subsystems/org.eclipse.ditto:water-level-subsystem/red";
+
+const char* sl_topic = "subsystems/org.eclipse.ditto:smart-light-subsystem/status";
+const char* dark_topic = "subsystems/org.eclipse.ditto:smart-light-subsystem/dark";
+const char* detected_topic = "subsystems/org.eclipse.ditto:smart-light-subsystem/detected";
 
 WaterLevelState currWLS = NORMAL;
 WaterLevelState prevWLS = NORMAL;
@@ -95,7 +96,8 @@ void CommunicationTask::tick(){
 
           	if(currWLS != prevWLS){
               	DynamicJsonDocument doc(1024);
-          		doc["waterLevelState"] = convertWaterLevelState(currWLS);
+				doc["thingId"] = "org.eclipse.ditto:water-level-subsystem";
+          		doc["status"] = convertWaterLevelState(currWLS);
           		char* msg_json = (char*) malloc(1024);
           		serializeJson(doc,msg_json,1024);
           		//Serial.println(msg_json);
@@ -106,7 +108,8 @@ void CommunicationTask::tick(){
 
 			if(currWL != prevWL){
               	DynamicJsonDocument doc(1024);
-          		doc["waterLevel"] = currWL;
+				doc["thingId"] = "org.eclipse.ditto:water-level-subsystem";
+          		doc["distance"] = currWL;
           		char* msg_json = (char*) malloc(1024);
           		serializeJson(doc,msg_json,1024);
           		//Serial.println(msg_json);
@@ -117,7 +120,8 @@ void CommunicationTask::tick(){
 
 			if(currAngle != prevAngle){
               	DynamicJsonDocument doc(1024);
-          		doc["valveAngle"] = currAngle;
+				doc["thingId"] = "org.eclipse.ditto:water-level-subsystem";
+          		doc["angle"] = currAngle;
           		char* msg_json = (char*) malloc(1024);
           		serializeJson(doc,msg_json,1024);
           		//Serial.println(msg_json);
@@ -128,7 +132,8 @@ void CommunicationTask::tick(){
 
 			if(currGreenON != prevGreenON){
               	DynamicJsonDocument doc(1024);
-          		doc["greenLedON"] = currGreenON;
+				doc["thingId"] = "org.eclipse.ditto:water-level-subsystem";
+          		doc["on"] = currGreenON;
           		char* msg_json = (char*) malloc(1024);
           		serializeJson(doc,msg_json,1024);
           		//Serial.println(msg_json);
@@ -139,7 +144,8 @@ void CommunicationTask::tick(){
 
 			if(currRedON != prevRedON || currB != prevB){
 				DynamicJsonDocument doc(1024);
-          		doc["redLedON"] = currRedON;
+				doc["thingId"] = "org.eclipse.ditto:water-level-subsystem";
+          		doc["on"] = currRedON;
 				doc["blinking"] = currB == BLINK_OFF ? false : true;
           		char* msg_json = (char*) malloc(1024);
           		serializeJson(doc,msg_json,1024);
@@ -152,7 +158,8 @@ void CommunicationTask::tick(){
 
 			if(currSL != prevSL){
               	DynamicJsonDocument doc(1024);
-          		doc["smartLightState"] = convertSmartLightState(currSL);
+				doc["thingId"] = "org.eclipse.ditto:smart-light-subsystem";
+          		doc["status"] = convertSmartLightState(currSL);
           		char* msg_json = (char*) malloc(1024);
           		serializeJson(doc,msg_json,1024);
           		//Serial.println(msg_json);
@@ -163,6 +170,7 @@ void CommunicationTask::tick(){
 
 			if(currDetection != prevDetection){
               	DynamicJsonDocument doc(1024);
+				doc["thingId"] = "org.eclipse.ditto:smart-light-subsystem";
           		doc["detected"] = currDetection;
           		char* msg_json = (char*) malloc(1024);
           		serializeJson(doc,msg_json,1024);
@@ -174,6 +182,7 @@ void CommunicationTask::tick(){
 
             if(currDark != prevDark){
               	DynamicJsonDocument doc(1024);
+				doc["thingId"] = "org.eclipse.ditto:smart-light-subsystem";
           		doc["dark"] = currDark;
           		char* msg_json = (char*) malloc(1024);
           		serializeJson(doc,msg_json,1024);
@@ -182,25 +191,13 @@ void CommunicationTask::tick(){
           		prevDark = currDark;
           		free(msg_json);
           	}
-
-            /*Serial.println("WLS: " + convertWaterLevelState(currWLS));
-            Serial.println("MS: " + convertManualState(currMS));
-            Serial.println("WL: " + String(currWL));
-            Serial.println("Angle :" + String(currAngle));
-            Serial.println("Green : " + currGreenON ? "true" : "false");
-            Serial.println("Red :" + currRedON ? "true" : "false");
-
-            Serial.println("Blink:  " + convertBlinkState(currB));
-            Serial.println("SL:  " + convertSmartLightState(currSL));
-            Serial.println("Detection:  " + currDetection ? "true" : "false");
-            Serial.println("Dark:  " + currDark ? "true" : "false");*/
         }
         vTaskDelay(COMMUNICATION_PERIOD);
     }
 }
 
 void callback(char* topic, byte* payload, unsigned int length) {
-	Serial.println(String("Message arrived on [") + topic + "] len: " + length + "   " + String((char *)payload));
+	//Serial.println(String("Message arrived on [") + topic + "] len: " + length + "   " + String((char *)payload) + "\n");
   	/*StaticJsonDocument<200> doc;
   	DeserializationError error = deserializeJson(doc, );
 		if(error){
@@ -237,12 +234,8 @@ void callback(char* topic, byte* payload, unsigned int length) {
 void reconnect(){
   while(!client.connected()){
     Serial.print("Attempting MQTT connection...");
-
-    /*Create a random client ID*/
-    String clientID = String("room-client-") + String(random(0xffff), HEX);
-
     /*Attempt to connect*/
-    if(client.connect(clientID.c_str())){
+    if(client.connect(clientId)){
       Serial.println("connected");
       client.subscribe(wls_topic);
       client.subscribe(wl_topic);
