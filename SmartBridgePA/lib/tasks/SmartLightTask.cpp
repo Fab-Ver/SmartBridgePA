@@ -10,6 +10,8 @@ bool currDarkState = false;
 SmartLightState currSLS = LIGHT_OFF;
 
 SmartLightState currSmartLightState  = LIGHT_OFF;
+SmartLightState currSmartLightStateExternal = LIGHT_OFF;
+bool flagExternal = false; 
 
 SmartLightTask::SmartLightTask(int ledPin, int lsPin, int msPin){
     this->led = new Led(ledPin);
@@ -35,7 +37,12 @@ void SmartLightTask::tick(){
             bool detected = motionSensor->isDetected();
             bool dark = lightSensor->isDark();
             xSemaphoreTake(xMutex, portMAX_DELAY);
-		    currSLS = currWaterLevelState == ALARM ? SYS_OFF : currSLS == SYS_OFF ? LIGHT_ON : currSLS;
+		    if(flagExternal == true){
+                currSLS = currSmartLightStateExternal;
+                flagExternal = false;
+            } else {
+                currSLS = currSmartLightState;
+            }
 		    xSemaphoreGive(xMutex);
             /*-----------------------------*/
             switch (currSLS){
@@ -65,7 +72,6 @@ void SmartLightTask::tick(){
                 }break;
                 case SYS_OFF:{
                     led->switchOff();
-                    //currTaskState = LIGHT_OFF;
                 }break;
             }
             /*Shared Variables update*/

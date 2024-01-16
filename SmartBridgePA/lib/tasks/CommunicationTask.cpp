@@ -4,13 +4,12 @@
 WiFiClient espClient;
 PubSubClient client(espClient); 
 
+
+const char* mqtt_server = "test.mosquitto.org"; /* MQTT server address */
+const char* clientId = "smart-bridge"; 
+
 /**
- * MQTT server address 
-*/
-const char* mqtt_server = "test.mosquitto.org";
-const char* clientId = "smart-bridge";
-/**
- * MQTT topic
+ * Water Level Task MQTT topic
 */
 const char* wls_topic = "subsystems/org.eclipse.ditto:water-level-subsystem/status";
 const char* wl_topic = "subsystems/org.eclipse.ditto:water-level-subsystem/distance";
@@ -18,9 +17,18 @@ const char* angle_topic = "subsystems/org.eclipse.ditto:water-level-subsystem/an
 const char* green_led_topic = "subsystems/org.eclipse.ditto:water-level-subsystem/green";
 const char* red_led_topic = "subsystems/org.eclipse.ditto:water-level-subsystem/red";
 
+/**
+ * Smart Light Task MQTT topic
+*/
 const char* sl_topic = "subsystems/org.eclipse.ditto:smart-light-subsystem/status";
 const char* dark_topic = "subsystems/org.eclipse.ditto:smart-light-subsystem/dark";
 const char* detected_topic = "subsystems/org.eclipse.ditto:smart-light-subsystem/detected";
+
+/**
+ * External (Ditto DT) MQTT topic
+*/
+const char* slsExternal = "subsystems/downlink/org.eclipse.ditto:smart-light-subsystem";
+const char* wlsExternal = "subsystems/downlink/org.eclipse.ditto:water-level-subsystem";
 
 WaterLevelState currWLS = NORMAL;
 WaterLevelState prevWLS = NORMAL;
@@ -58,6 +66,7 @@ unsigned long lastCommunication = 0;
 CommunicationTask::CommunicationTask(){
     randomSeed(micros());
     client.setServer(mqtt_server, 1883);
+	client.setBufferSize(2048);
     client.setCallback(callback);
 }
 
@@ -197,7 +206,7 @@ void CommunicationTask::tick(){
 }
 
 void callback(char* topic, byte* payload, unsigned int length) {
-	//Serial.println(String("Message arrived on [") + topic + "] len: " + length + "   " + String((char *)payload) + "\n");
+	Serial.println(String("Message arrived on [") + topic + "] len: " + length + "   " + String((char *)payload) + "\n");
   	/*StaticJsonDocument<200> doc;
   	DeserializationError error = deserializeJson(doc, );
 		if(error){
@@ -237,12 +246,8 @@ void reconnect(){
     /*Attempt to connect*/
     if(client.connect(clientId)){
       Serial.println("connected");
-      client.subscribe(wls_topic);
-      client.subscribe(wl_topic);
-	  client.subscribe(angle_topic);
-	  client.subscribe(green_led_topic);
-	  client.subscribe(red_led_topic);
-	  client.subscribe(sl_topic);
+	  client.subscribe(wlsExternal);
+	  client.subscribe(slsExternal);
     } else {
       Serial.print("failed rc=");
       Serial.print(client.state());

@@ -19,6 +19,8 @@ extern BlinkState currBlinkState;
 
 /*Smart Light Task shared variables*/
 extern SmartLightState currSmartLightState;
+extern SmartLightState currSmartLightStateExternal;
+extern bool flagExternal; 
 extern bool currDetectionState;
 extern bool currDarkState;
 /*--------------------------------*/
