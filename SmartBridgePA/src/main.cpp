@@ -21,7 +21,7 @@ void setup() {
   Serial.begin(115200);
   xMutex = xSemaphoreCreateMutex();
   setup_wifi();
-  Task* waterLevelTask = new WaterLevelTask(TRIG_PIN, ECHO_PIN, VALVE_PIN, GREEN_PIN, RED_PIN, KNOB_PIN);
+  Task* waterLevelTask = new WaterLevelTask(TRIG_PIN, ECHO_PIN, VALVE_PIN, GREEN_PIN, RED_PIN);
   Task* smartLightTask = new SmartLightTask(LED_PIN, LS_PIN, MS_PIN);
   Task* blinkTask = new BlinkTask(RED_PIN);
   Task* communicationTask = new CommunicationTask();
