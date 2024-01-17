@@ -20,9 +20,9 @@ const char* red_led_topic = "subsystems/org.eclipse.ditto:water-level-subsystem/
 /**
  * Smart Light Task MQTT topic
 */
-const char* sl_topic = "subsystems/org.eclipse.ditto:smart-light-subsystem/status";
 const char* dark_topic = "subsystems/org.eclipse.ditto:smart-light-subsystem/dark";
 const char* detected_topic = "subsystems/org.eclipse.ditto:smart-light-subsystem/detected";
+const char* light_topic = "subsystems/org.eclipse.ditto:smart-light-subsystem/light";
 
 /**
  * External (Ditto DT) MQTT topic
@@ -51,15 +51,14 @@ bool prevRedON = false;
 BlinkState currB = BLINK_OFF;
 BlinkState prevB = BLINK_OFF;
 
-SmartLightState currSL = LIGHT_OFF;
-SmartLightState prevSL = LIGHT_OFF;
-
 bool currDetection = false;
 bool prevDetection = false;
 
 bool currDark = false;
 bool prevDark = false;
 
+SmartLightLedState currLedState = LIGHT_OFF;
+SmartLightLedState prevLedState = LIGHT_OFF;
 
 unsigned long lastCommunication = 0;
 
@@ -96,11 +95,10 @@ void CommunicationTask::tick(){
             currAngle = currValveAngle;
             currGreenON = currGreenLedON;
             currRedON  = currRedLedON;
-
-            currB = currBlinkState;
-            currSL = currSmartLightState;
+			currB = currBlinkState;
             currDetection = currDetectionState;
             currDark = currDarkState;
+			currLedState = currSmartLightLedState;
             xSemaphoreGive(xMutex);
 
           	if(currWLS != prevWLS){
@@ -165,15 +163,16 @@ void CommunicationTask::tick(){
           		free(msg_json);
 			}
 
-			if(currSL != prevSL){
+			if(prevLedState != currLedState){
               	DynamicJsonDocument doc(1024);
 				doc["thingId"] = "org.eclipse.ditto:smart-light-subsystem";
-          		doc["status"] = convertSmartLightState(currSL);
+          		doc["on"] = currLedState == LIGHT_OFF ? false : true;
+				doc["waiting"] = currLedState == WAITING ? true : false;
           		char* msg_json = (char*) malloc(1024);
           		serializeJson(doc,msg_json,1024);
           		//Serial.println(msg_json);
-          		client.publish(sl_topic,msg_json);
-          		prevSL = currSL;
+          		client.publish(light_topic,msg_json);
+				prevLedState = currLedState;
           		free(msg_json);
           	}
 
@@ -206,38 +205,29 @@ void CommunicationTask::tick(){
 }
 
 void callback(char* topic, byte* payload, unsigned int length) {
-	Serial.println(String("Message arrived on [") + topic + "] len: " + length + "   " + String((char *)payload) + "\n");
-  	/*StaticJsonDocument<200> doc;
-  	DeserializationError error = deserializeJson(doc, );
+	
+	if(strcmp(topic,"subsystems/downlink/org.eclipse.ditto:smart-light-subsystem") == 0){
+		Serial.println(String("Message arrived on [") + topic + "] len: " + length + "   " + String((char *)payload) + "\n");
+  		StaticJsonDocument<750> doc;
+  		DeserializationError error = deserializeJson(doc, payload);
 		if(error){
 			Serial.print(F("deserializeJson() failed: "));
     		Serial.println(error.c_str());
+			return;
 		}
-	/*JsonObject json = doc.as<JsonObject>();
-	if(json.containsKey("light")){
-		bool light = doc["light"];
-		LightState currLightState = light ? ON : OFF;
-		if(currLightState != prevLightState){
-			rollerBlind->off();
-			if(currLightState == ON){
-				led->switchOn();
-			} else {
-				led->switchOff();
+		JsonObject json = doc.as<JsonObject>();
+		if(json.containsKey("path") && json.containsKey("value")){
+			String path = doc["path"];
+			String value = doc["value"];		
+			if(path == "/features/status/properties/status"){
+				xSemaphoreTake(xMutex, portMAX_DELAY);
+                currSmartLightState = value == "SYS_OFF" ? SYS_OFF : SYS_ON;
+		    	xSemaphoreGive(xMutex);
 			}
-			prevLightState = currLightState;
-			return true;
+		} else {
+			Serial.println("[error] - Invalid JSON Object.");
 		}
 	}
-	if(json.containsKey("roller_blind")){
-		int currRollerBlindState = doc["roller_blind"];
-		if(currRollerBlindState != prevRollerBlindState){
-			int angle = map(currRollerBlindState, 0, 100, 0, 180);
-			rollerBlind->on();
-			rollerBlind->setPosition(angle);
-			prevRollerBlindState = currRollerBlindState;
-			return true;
-		}
-	}*/
 }
 
 void reconnect(){
