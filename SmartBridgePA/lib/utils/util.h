@@ -4,11 +4,6 @@
 #include "config.h"
 #include "Arduino.h"
 
-String convertSmartLightState(SmartLightState value){
-    String names[4] = {"LIGHT_ON", "LIGHT_OFF", "WAITING", "SYS_OFF"};
-    return names[value];
-}
-
 String convertWaterLevelState(WaterLevelState value){
     String names[4] = {"NORMAL", "PRE_ALARM", "ALARM", "MANUAL"};
     return names[value];
