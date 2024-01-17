@@ -8,8 +8,8 @@ unsigned long lastON = 0;
 bool currDetectionState = false;
 bool currDarkState = false;
 
-SmartLightState currSmartLightState = SYS_ON;
 SmartLightLedState currLed = LIGHT_OFF;
+SmartLightState currSmartLightState = SYS_ON;
 SmartLightLedState currSmartLightLedState  = LIGHT_OFF;
 
 SmartLightTask::SmartLightTask(int ledPin, int lsPin, int msPin){
@@ -33,14 +33,14 @@ void SmartLightTask::tick(){
         if(now - lastDetection >= SMART_LIGHT_PERIOD){
             lastDetection = now;
             /*Local variables update*/
-            bool detected = true;//motionSensor->isDetected();
-            bool dark = true;//lightSensor->isDark();
+            bool detected = motionSensor->isDetected();
+            bool dark = lightSensor->isDark();
             SmartLightState status;
             xSemaphoreTake(xMutex, portMAX_DELAY);
             status = currSmartLightState;
 		    xSemaphoreGive(xMutex);
             /*-----------------------------*/
-            if(currSmartLightState == SYS_ON){
+            if(status == SYS_ON){
                 if(currLed == LIGHT_OFF){
                     if(detected && dark){
                         currLed = LIGHT_ON;
@@ -70,6 +70,12 @@ void SmartLightTask::tick(){
 		        xSemaphoreGive(xMutex);
             } else {
                 led->switchOff();
+                currLed = LIGHT_OFF;
+                xSemaphoreTake(xMutex, portMAX_DELAY);
+                currSmartLightLedState = currLed;
+                currDetectionState = detected;
+                currDarkState = dark;
+		        xSemaphoreGive(xMutex);
             }
         }
 		vTaskDelay(500);

@@ -88,6 +88,9 @@ void CommunicationTask::tick(){
           	}
           	client.loop();
             
+			/**
+			 * Read shared variables from all tasks
+			*/
             xSemaphoreTake(xMutex, portMAX_DELAY);
             currWLS = currWaterLevelState;
             currMS = currManualState;
@@ -148,7 +151,7 @@ void CommunicationTask::tick(){
 			if(currRedON != prevRedON || currB != prevB){
 				DynamicJsonDocument doc(1024);
 				doc["thingId"] = "org.eclipse.ditto:water-level-subsystem";
-          		doc["on"] = currRedON;
+          		doc["on"] = currB != BLINK_OFF ? (currB == ON ? true : false) : currRedON;
 				doc["blinking"] = currB == BLINK_OFF ? false : true;
           		char* msg_json = (char*) malloc(1024);
           		serializeJson(doc,msg_json,1024);
@@ -197,9 +200,7 @@ void CommunicationTask::tick(){
 }
 
 void callback(char* topic, byte* payload, unsigned int length) {
-	
 	if(strcmp(topic,"subsystems/downlink/org.eclipse.ditto:smart-light-subsystem") == 0){
-		Serial.println(String("Message arrived on [") + topic + "] len: " + length + "   " + String((char *)payload) + "\n");
   		StaticJsonDocument<750> doc;
   		DeserializationError error = deserializeJson(doc, payload);
 		if(error){
