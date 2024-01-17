@@ -36,8 +36,8 @@ WaterLevelState prevWLS = NORMAL;
 ManualState currMS = MANUAL_OFF;
 ManualState prevMS = MANUAL_OFF;
 
-float currWL = WL1;
-float prevWL = WL1;
+String currWL = "0.00";
+String prevWL = "0.00";
 
 int currAngle = 0;
 int prevAngle = 0;
@@ -91,7 +91,7 @@ void CommunicationTask::tick(){
             xSemaphoreTake(xMutex, portMAX_DELAY);
             currWLS = currWaterLevelState;
             currMS = currManualState;
-            currWL = currWaterLevel;
+            currWL = String(currWaterLevel,2);
             currAngle = currValveAngle;
             currGreenON = currGreenLedON;
             currRedON  = currRedLedON;
@@ -107,7 +107,6 @@ void CommunicationTask::tick(){
           		doc["status"] = convertWaterLevelState(currWLS);
           		char* msg_json = (char*) malloc(1024);
           		serializeJson(doc,msg_json,1024);
-          		//Serial.println(msg_json);
           		client.publish(wls_topic,msg_json);
           		prevWLS = currWLS;
           		free(msg_json);
@@ -119,7 +118,6 @@ void CommunicationTask::tick(){
           		doc["distance"] = currWL;
           		char* msg_json = (char*) malloc(1024);
           		serializeJson(doc,msg_json,1024);
-          		//Serial.println(msg_json);
           		client.publish(wl_topic,msg_json);
           		prevWL = currWL;
           		free(msg_json);
@@ -131,7 +129,6 @@ void CommunicationTask::tick(){
           		doc["angle"] = currAngle;
           		char* msg_json = (char*) malloc(1024);
           		serializeJson(doc,msg_json,1024);
-          		//Serial.println(msg_json);
           		client.publish(angle_topic,msg_json);
           		prevAngle = currAngle;
           		free(msg_json);
@@ -143,7 +140,6 @@ void CommunicationTask::tick(){
           		doc["on"] = currGreenON;
           		char* msg_json = (char*) malloc(1024);
           		serializeJson(doc,msg_json,1024);
-          		//Serial.println(msg_json);
           		client.publish(green_led_topic,msg_json);
           		prevGreenON = currGreenON;
           		free(msg_json);
@@ -156,7 +152,6 @@ void CommunicationTask::tick(){
 				doc["blinking"] = currB == BLINK_OFF ? false : true;
           		char* msg_json = (char*) malloc(1024);
           		serializeJson(doc,msg_json,1024);
-          		//Serial.println(msg_json);
           		client.publish(red_led_topic,msg_json);
           		prevRedON = currRedON;
 				prevB = currB;
@@ -170,7 +165,6 @@ void CommunicationTask::tick(){
 				doc["waiting"] = currLedState == WAITING ? true : false;
           		char* msg_json = (char*) malloc(1024);
           		serializeJson(doc,msg_json,1024);
-          		//Serial.println(msg_json);
           		client.publish(light_topic,msg_json);
 				prevLedState = currLedState;
           		free(msg_json);
@@ -182,7 +176,6 @@ void CommunicationTask::tick(){
           		doc["detected"] = currDetection;
           		char* msg_json = (char*) malloc(1024);
           		serializeJson(doc,msg_json,1024);
-          		//Serial.println(msg_json);
           		client.publish(detected_topic,msg_json);
           		prevDetection = currDetection;
           		free(msg_json);
@@ -194,7 +187,6 @@ void CommunicationTask::tick(){
           		doc["dark"] = currDark;
           		char* msg_json = (char*) malloc(1024);
           		serializeJson(doc,msg_json,1024);
-          		//Serial.println(msg_json);
           		client.publish(dark_topic,msg_json);
           		prevDark = currDark;
           		free(msg_json);
