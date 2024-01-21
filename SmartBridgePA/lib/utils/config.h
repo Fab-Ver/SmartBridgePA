@@ -23,7 +23,7 @@
 typedef enum BlinkState {ON, OFF, BLINK_OFF} BlinkState;
 typedef enum SmartLightState {SYS_OFF, SYS_ON} SmartLightState;
 typedef enum SmartLightLedState {LIGHT_ON, LIGHT_OFF, WAITING} SmartLightLedState;
-typedef enum WaterLevelState {NORMAL, PRE_ALARM, ALARM, MANUAL} WaterLevelState;
+typedef enum WaterLevelState {NORMAL, PRE_ALARM, ALARM} WaterLevelState;
 typedef enum ManualState {MANUAL_ON, MANUAL_OFF} ManualState;
 
 #endif
