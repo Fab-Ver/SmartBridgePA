@@ -16,6 +16,7 @@ const char* wl_topic = "subsystems/org.eclipse.ditto:water-level-subsystem/dista
 const char* angle_topic = "subsystems/org.eclipse.ditto:water-level-subsystem/angle";
 const char* green_led_topic = "subsystems/org.eclipse.ditto:water-level-subsystem/green";
 const char* red_led_topic = "subsystems/org.eclipse.ditto:water-level-subsystem/red";
+const char* manual_topic = "subsystems/org.eclipse.ditto:water-level-subsystem/manual";
 
 /**
  * Smart Light Task MQTT topic
@@ -27,8 +28,8 @@ const char* light_topic = "subsystems/org.eclipse.ditto:smart-light-subsystem/li
 /**
  * External (Ditto DT) MQTT topic
 */
-const char* slsExternal = "subsystems/downlink/org.eclipse.ditto:smart-light-subsystem";
-const char* wlsExternal = "subsystems/downlink/org.eclipse.ditto:water-level-subsystem";
+const char* slsEvents = "subsystems/events/org.eclipse.ditto:smart-light-subsystem";
+const char* wlsMessages = "subsystems/messages/org.eclipse.ditto:water-level-subsystem";
 
 WaterLevelState currWLS = NORMAL;
 WaterLevelState prevWLS = NORMAL;
@@ -60,6 +61,8 @@ bool prevDark = false;
 SmartLightLedState currLedState = LIGHT_OFF;
 SmartLightLedState prevLedState = LIGHT_OFF;
 
+ManualState prevManual = MANUAL_OFF;
+
 unsigned long lastCommunication = 0;
 
 CommunicationTask::CommunicationTask(){
@@ -87,7 +90,7 @@ void CommunicationTask::tick(){
             	reconnect();
           	}
           	client.loop();
-            
+            ManualState manual;
 			/**
 			 * Read shared variables from all tasks
 			*/
@@ -102,6 +105,7 @@ void CommunicationTask::tick(){
             currDetection = currDetectionState;
             currDark = currDarkState;
 			currLedState = currSmartLightLedState;
+			manual = currManualState;
             xSemaphoreGive(xMutex);
 
           	if(currWLS != prevWLS){
@@ -194,13 +198,24 @@ void CommunicationTask::tick(){
           		prevDark = currDark;
           		free(msg_json);
           	}
+
+			if(prevManual != manual){
+				DynamicJsonDocument doc(1024);
+				doc["thingId"] = "org.eclipse.ditto:water-level-subsystem";
+          		doc["manual"] = manual == MANUAL_ON ? true : false;
+          		char* msg_json = (char*) malloc(1024);
+          		serializeJson(doc,msg_json,1024);
+          		client.publish(manual_topic,msg_json);
+          		prevManual = manual;
+          		free(msg_json);
+			}
         }
         vTaskDelay(COMMUNICATION_PERIOD);
     }
 }
 
 void callback(char* topic, byte* payload, unsigned int length) {
-	if(strcmp(topic,"subsystems/downlink/org.eclipse.ditto:smart-light-subsystem") == 0){
+	if(strcmp(topic,slsEvents) == 0){
   		StaticJsonDocument<750> doc;
   		DeserializationError error = deserializeJson(doc, payload);
 		if(error){
@@ -211,10 +226,36 @@ void callback(char* topic, byte* payload, unsigned int length) {
 		JsonObject json = doc.as<JsonObject>();
 		if(json.containsKey("path") && json.containsKey("value")){
 			String path = doc["path"];
-			String value = doc["value"];		
+			String value = doc["value"];	
 			if(path == "/features/status/properties/status"){
 				xSemaphoreTake(xMutex, portMAX_DELAY);
                 currSmartLightState = value == "SYS_OFF" ? SYS_OFF : SYS_ON;
+		    	xSemaphoreGive(xMutex);
+			}
+		} else {
+			Serial.println("[error] - Invalid JSON Object.");
+		}
+	} else if(strcmp(topic,wlsMessages) == 0){
+		DynamicJsonDocument doc(2048);
+		DeserializationError error = deserializeJson(doc,payload);
+		if(error){
+			Serial.print(F("deserializeJson() failed: "));
+    		Serial.println(error.c_str());
+			return;
+		}
+		JsonObject json = doc.as<JsonObject>();
+		if(json.containsKey("path") && json.containsKey("value")){
+			String path = doc["path"];
+			JsonObject value = doc["value"];	
+			if(doc["value"].containsKey("angle")){
+				int angle = value["angle"];
+				xSemaphoreTake(xMutex, portMAX_DELAY);
+                currManualAngle = angle;
+		    	xSemaphoreGive(xMutex);
+			} else if (doc["value"].containsKey("manual")){
+				bool manual = value["manual"];
+				xSemaphoreTake(xMutex, portMAX_DELAY);
+                currManualState = manual ? MANUAL_ON : MANUAL_OFF;
 		    	xSemaphoreGive(xMutex);
 			}
 		} else {
@@ -229,8 +270,8 @@ void reconnect(){
     /*Attempt to connect*/
     if(client.connect(clientId)){
       Serial.println("connected");
-	  client.subscribe(wlsExternal);
-	  client.subscribe(slsExternal);
+	  client.subscribe(wlsMessages);
+	  client.subscribe(slsEvents);
     } else {
       Serial.print("failed rc=");
       Serial.print(client.state());
