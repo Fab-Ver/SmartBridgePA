@@ -9,9 +9,11 @@ bool currRedLedON = false;
 
 WaterLevelState currTaskState = NORMAL;
 WaterLevelState prevTaskState = NORMAL;
-ManualState currManualState = MANUAL_OFF;
-
 WaterLevelState currWaterLevelState = NORMAL;
+
+ManualState currManualState = MANUAL_OFF;
+ManualState prevManualState = MANUAL_OFF;
+int currManualAngle = 0;
 
 void switchState(float currWL);
 
@@ -36,74 +38,74 @@ void WaterLevelTask::tick(){
 		unsigned long now = millis();
         if(now - last >= WATER_LEVEL_PERIOD){
             last = now;
+
             ManualState manual;
             int manualAngle;
-            xSemaphoreTake(xMutex, portMAX_DELAY);
-	        manual = currManualState;
-	        xSemaphoreGive(xMutex);
-
             float currWL = waterLevelSensor->getDistance();
             int valveAngle;
             bool greenON;
             bool redON;
 
+            xSemaphoreTake(xMutex, portMAX_DELAY);
+	        manual = currManualState;
+            if(manual == MANUAL_ON){
+                manualAngle = currManualAngle;
+            }
+	        xSemaphoreGive(xMutex);
+
             if(manual == MANUAL_OFF){
                 switchState(currWL);
+                switch(currTaskState){
+                    case NORMAL:{
+                        if(currTaskState != prevTaskState){
+                            if(prevTaskState == ALARM){
+                                valve->off();
+                            }
+                            greenLed->switchOn();
+                            redLed->switchOff();
+                            valveAngle = 0;
+                            greenON = true;
+                            redON = false;
+                        }   
+                    }break;
+                    case PRE_ALARM:{
+                        if(currTaskState != prevTaskState){
+                            if(prevTaskState == ALARM){
+                                valve->off();
+                            }
+                            greenLed->switchOff();
+                            valveAngle = 0;
+                            greenON = false;
+                            redON = true;
+                        }
+                    }break;
+                    case ALARM:{
+                        int angle = map(currWL*100,WL_MAX,WL2,180,0);
+                        if(currTaskState != prevTaskState){
+                            redLed->switchOn();
+                            greenLed->switchOff();
+                            valve->on();
+                            redON = true;
+                            greenON = false;
+                        }
+                        valve->setPosition(angle);
+                        valveAngle = angle;
+                    } break;
+                }
+                prevManualState = manual;
             } else {
-                //manualAngle = knob->getAngle();
-            }
-
-            switch(currTaskState){
-                case NORMAL:{
-                    if(currTaskState != prevTaskState){
-                        if(prevTaskState == ALARM || prevTaskState == MANUAL){
-                            valve->off();
-                        }
-                        greenLed->switchOn();
-                        redLed->switchOff();
-                        valveAngle = 0;
-                        greenON = true;
-                        redON = false;
-                    }
-                }break;
-                case PRE_ALARM:{
-                    if(currTaskState != prevTaskState){
-                        if(prevTaskState == ALARM || prevTaskState == MANUAL){
-                            valve->off();
-                        }
+                if(currManualState != prevManualState){
+                    redLed->switchOn();
                     greenLed->switchOff();
-                    valveAngle = 0;
-                    greenON = false;
+                    if(prevTaskState != ALARM){
+                            valve->on();
+                    }
                     redON = true;
-                     }
-                }break;
-                case ALARM:{
-                    int angle = map(currWL*100,WL_MAX,WL2,180,0);
-                    if(currTaskState != prevTaskState){
-                        redLed->switchOn();
-                        greenLed->switchOff();
-                        if(prevTaskState != MANUAL){
-                            valve->on();
-                        }
-                        redON = true;
-                        greenON = false;
-                    }
-                    valve->setPosition(angle);
-                    valveAngle = angle;
-                } break;
-                case MANUAL: {
-                    if(currTaskState != prevTaskState){
-                        redLed->switchOn();
-                        greenLed->switchOff();
-                        if(prevTaskState != ALARM){
-                            valve->on();
-                        }
-                        redON = true;
-                        greenON = false;
-                    }
-                    valve->setPosition(manualAngle);
-                    valveAngle = manualAngle;
-                }break;
+                    greenON = false;
+                }
+                valve->setPosition(manualAngle);
+                valveAngle = manualAngle;
+                prevManualState = manual;
             }
 
             /*Shared variables update*/
