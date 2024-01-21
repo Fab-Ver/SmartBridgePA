@@ -7,6 +7,7 @@
 /*Water Level Task shared variables */
 extern WaterLevelState currWaterLevelState;
 extern ManualState currManualState;
+extern int currManualAngle;
 extern float currWaterLevel;
 extern int currValveAngle;
 extern bool currGreenLedON;
