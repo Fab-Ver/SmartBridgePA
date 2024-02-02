@@ -73,8 +73,8 @@ void SmartLightTask::tick(){
                 currLed = LIGHT_OFF;
                 xSemaphoreTake(xMutex, portMAX_DELAY);
                 currSmartLightLedState = currLed;
-                currDetectionState = detected;
-                currDarkState = dark;
+                currDetectionState = false;
+                currDarkState = false;
 		        xSemaphoreGive(xMutex);
             }
         }
